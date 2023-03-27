@@ -4,14 +4,12 @@ import requests
 from bs4 import BeautifulSoup
 
 
-startUrl = 'https://scrapeme.live/shop/page/1/'
-
-to_visit = set()
-visited = set()
-max_visits = 4
-num_worker = 5
-
-q = queue.Queue()
+# config constants
+startUrl = 'https://scrapeme.live/shop/page/1/' # start link
+data = [] # content storage
+visited = set() # list of visited links
+max_visits = 100 # max number links to visit
+num_worker = 5 # number thread to create
 
 # free proxy list - https://free-proxy-list.net
 proxies = {
@@ -37,7 +35,9 @@ headers = {
 # get html content
 def get_html(url):
 	try:
-		return requests.get(url, headers=headers, proxies=proxies).content
+		# response = requests.get(url)
+		response = requests.get(url, headers=headers, proxies=proxies)
+		return response.content
 	except Exception as e:
 		print(e)
 		return ''
@@ -49,38 +49,51 @@ def extract_links(soup):
 # get need content
 def extract_content(soup):
   for product in soup.select('.product'):
-    print(product.find('h2').text)
+    data.append({
+      'id': product.find('a', attrs={'data-product_id': True})['data-product_id'],
+      'name': product.find('h2').text,
+      'price': product.find('span', {'class': 'amount'}).text
+    })
 
 # main crawler function
-def crawl(url):
-  if not url or url in visited:
-    return
-  print('Crawl: ', url)
+def crawl(url, q):
   visited.add(url)
+  print('Crawl: ', url)
   html = get_html(url)
   soup = BeautifulSoup(html, 'lxml')
   extract_content(soup)
   links = extract_links(soup)
   [q.put(link) for link in links if link not in visited]
-  to_visit.update(links)
 
-# create queue worker
+# create crawl queue worker
 def queue_worker(i, q):
   while True:
     url = q.get()  # get an item from the queue
     if (len(visited) < max_visits and url not in visited):
-      crawl(url)
+      crawl(url, q)
     q.task_done()  # notifies the queue that the item has been processed
 
-# scrap data with recurcive
+# scrap data
 def main():
+  q = queue.Queue()
   # oganize threeding queue
   for i in range(num_worker):
     Thread(target=queue_worker, args=(i, q), daemon=True).start()
   q.put(startUrl)
   q.join()
-  print('Done')
 
+  # output result
+  print('\nVisited: ')
+  [print(visit) for visit in visited]
+  print('\nProducts:')
+  [print(product) for product in data]
+  print('\nDone')
+
+
+def ip_rate_limit(url):
+   response = requests.get(url)
+   return response.json()['origin']
 
 if __name__ == '__main__':
   main()
+
