@@ -13,6 +13,7 @@ num_worker = 5
 
 q = queue.Queue()
 
+# free proxy list - https://free-proxy-list.net
 proxies = {
 	'http': 'http://91.209.11.132:80',
 	'https': 'http://8.219.176.202:8080',
