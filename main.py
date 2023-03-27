@@ -16,7 +16,7 @@ q = queue.Queue()
 # free proxy list - https://free-proxy-list.net
 proxies = {
 	'http': 'http://91.209.11.132:80',
-	'https': 'http://8.219.176.202:8080',
+	'http': 'http://8.219.176.202:8080',
 }
 
 headers = {
@@ -34,29 +34,13 @@ headers = {
 	'accept-language': 'en-US,en;q=0.9',
 }
 
+# get html content
 def get_html(url):
 	try:
-		response = requests.get(url, headers=headers, proxies=proxies)
-		return response.content
+		return requests.get(url, headers=headers, proxies=proxies).content
 	except Exception as e:
 		print(e)
 		return ''
-
-# create queue worker
-def queue_worker(i, q):
-  while True:
-    url = q.get() # get an item from the queue
-    if (len(visited) < max_visits and url not in visited):
-      crawl(url)
-    q.task_done() # notifies the queue that the item has been processed
-
-# get html content
-def get_html(url):
-  try:
-    return requests.get(url).content
-  except Exception as e:
-    print(e)
-    return ''
 
 # get list of links
 def extract_links(soup):
@@ -80,17 +64,23 @@ def crawl(url):
   [q.put(link) for link in links if link not in visited]
   to_visit.update(links)
 
+# create queue worker
+def queue_worker(i, q):
+  while True:
+    url = q.get()  # get an item from the queue
+    if (len(visited) < max_visits and url not in visited):
+      crawl(url)
+    q.task_done()  # notifies the queue that the item has been processed
+
 # scrap data with recurcive
 def main():
   # oganize threeding queue
   for i in range(num_worker):
     Thread(target=queue_worker, args=(i, q), daemon=True).start()
-
   q.put(startUrl)
   q.join()
   print('Done')
 
 
 if __name__ == '__main__':
-
   main()
