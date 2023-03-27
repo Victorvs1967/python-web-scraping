@@ -89,9 +89,20 @@ def main():
   print('\nDone')
 
 # probe features...
-def get_origin_ip():
-   return requests.get('http://httpbin.org/ip', proxies=config['proxies'], headers=config['headers']).json()['origin']
+def get_origin():
+   responseIP = requests.get(
+    'http://httpbin.org/ip', 
+    proxies=config['proxies'], 
+    headers=config['headers']
+   )
+   responseUA = requests.get(
+    'http://httpbin.org/headers', 
+    proxies=config['proxies'], 
+    headers=config['headers']
+   )
+   print('Origin: ', responseIP.json()['origin'])
+   print('Headers: ', responseUA.json()['headers']['User-Agent'])
 
 if __name__ == '__main__':
   # main()
-  print(get_origin_ip())
+  get_origin()
