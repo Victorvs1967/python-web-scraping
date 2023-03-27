@@ -2,6 +2,9 @@ import queue
 from threading import Thread
 import requests
 from bs4 import BeautifulSoup
+import json
+from playwright.sync_api import sync_playwright
+from playwright_stealth import stealth_sync
 
 
 # config constants
@@ -90,18 +93,39 @@ def main():
 
 # probe features...
 def get_origin():
-   responseIP = requests.get(
+
+  # get User-Agent with simple requests
+  responseIP = requests.get(
     'http://httpbin.org/ip', 
     proxies=config['proxies'], 
     headers=config['headers']
-   )
-   responseUA = requests.get(
+  )
+  responseUA = requests.get(
     'http://httpbin.org/headers', 
     proxies=config['proxies'], 
     headers=config['headers']
-   )
-   print('Origin: ', responseIP.json()['origin'])
-   print('Headers: ', responseUA.json()['headers']['User-Agent'])
+  )
+  print('Origin: ', responseIP.json()['origin'])
+  print('Headers: ', responseUA.json()['headers']['User-Agent'])
+
+  # get User-Agent with playwright headless browser
+  with sync_playwright() as p:
+    for browser_type in [p.chromium, p.webkit, p.firefox]:
+      browser = browser_type.launch()
+
+      if browser_type == p.chromium:
+        page = browser.new_page(extra_http_headers=config['headers'])
+      else:
+        page = browser.new_page()
+
+      # page.goto('https://pixelscan.net')
+      # page.screenshot(path=f'ex-{browser_type.name}.png') # 'domcontentloaded', 'load', 'networkidle'
+      
+      stealth_sync(page)
+      page.goto('https://httpbin.org/headers')
+      jsonContent = json.loads(page.inner_text('pre'))
+      print(jsonContent['headers']['User-Agent'])
+      browser.close()
 
 if __name__ == '__main__':
   # main()
