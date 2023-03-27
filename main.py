@@ -88,10 +88,10 @@ def main():
   [print(product) for product in config['data']]
   print('\nDone')
 
+# probe features...
 def get_origin_ip():
    return requests.get('http://httpbin.org/ip', proxies=config['proxies'], headers=config['headers']).json()['origin']
 
 if __name__ == '__main__':
   # main()
-  
   print(get_origin_ip())
